@@ -3,7 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.user import User
-from app.schemas.user import UserRegister, UserResponse
+from app.utils.auth import verify_password, create_access_token
+from app.schemas.user import UserRegister, UserResponse, UserLogin, TokenResponse
+from jose import jwt, JWTError
+from app.config import SECRET_KEY, ALGORITHM
+
+
 
 # 创建路由器
 router = APIRouter(prefix="/user", tags=["用户"])
@@ -46,3 +51,66 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_datab
 
     # 4. 返回新用户信息
     return new_user
+
+
+
+# 登录接口
+@router.post("/login", response_model=TokenResponse)
+async def login(user_data: UserLogin, db: AsyncSession = Depends(get_database)):
+    # 1. 查找用户是否存在
+    result = await db.execute(select(User).where(User.username == user_data.username))
+    user = result.scalar_one_or_none()
+
+    # 2. 用户不存在
+    if not user:
+        raise HTTPException(status_code=400, detail="用户名或密码错误")
+
+    # 3. 验证密码是否正确
+    if not verify_password(user_data.password, user.password):
+        raise HTTPException(status_code=400, detail="用户名或密码错误")
+
+    # 4. 生成 Token
+    access_token = create_access_token(data={"sub": user.username})
+
+    # 5. 返回 Token
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+
+
+
+# 依赖函数：从 Token 中获取当前用户
+async def get_current_user(
+    # 从请求头里取 Authorization 字段
+    # 格式：Bearer xxxxx
+    authorization: str = Depends(lambda request: request.headers.get("Authorization")),
+    db: AsyncSession = Depends(get_database)
+):
+    # 1. 检查是否传了 Token
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="未提供有效的认证信息")
+
+    # 2. 取出 Token（去掉 "Bearer " 前缀）
+    token = authorization.split(" ")[1]
+
+    try:
+        # 3. 解析 Token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+
+        if username is None:
+            raise HTTPException(status_code=401, detail="Token 无效")
+
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token 无效或已过期")
+
+    # 4. 从数据库查询用户
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="用户不存在")
+
+    return user
