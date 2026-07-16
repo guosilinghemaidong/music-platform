@@ -30,3 +30,8 @@ class UserLogin(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str   # Token 字符串
     token_type: str     # Token 类型，固定是 "bearer"
+
+# 修改个人信息时要传的参数（都是可选的）
+class UserUpdate(BaseModel):
+    nickname: str = None    # 昵称
+    avatar: str = None      # 头像
