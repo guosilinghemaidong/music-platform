@@ -1,16 +1,23 @@
 from fastapi import FastAPI
-from app.routers import user  # 导入用户路由
+from fastapi.middleware.cors import CORSMiddleware
+from app.routers import user
 
 app = FastAPI(title="音乐社交平台", description="FastAPI + Vue3 全栈项目")
 
-# 注册路由（把 user.router 里的所有接口都加进来）
-app.include_router(user.router)
+# 允许跨域（前端 localhost:5173 访问后端 localhost:8000）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # 允许前端地址
+    allow_credentials=True,
+    allow_methods=["*"],    # 允许所有请求方法
+    allow_headers=["*"],    # 允许所有请求头
+)
 
+app.include_router(user.router)
 
 @app.get("/")
 async def root():
     return {"message": "音乐社交平台 API 运行中！"}
-
 
 @app.get("/health")
 async def health_check():
