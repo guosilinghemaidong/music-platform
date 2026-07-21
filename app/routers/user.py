@@ -153,3 +153,5 @@ async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_database))
         raise HTTPException(status_code=404, detail="用户不存在")
 
     return user
+
+

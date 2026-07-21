@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import user
+from app.routers import music
+
 
 app = FastAPI(title="音乐社交平台", description="FastAPI + Vue3 全栈项目")
 
@@ -14,6 +16,7 @@ app.add_middleware(
 )
 
 app.include_router(user.router)
+app.include_router(music.router)
 
 @app.get("/")
 async def root():
