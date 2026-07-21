@@ -18,6 +18,11 @@
 
 <script setup>
 import { reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import api from '../api/index.js'
+import { ElMessage } from 'element-plus'
+
+const router = useRouter()
 
 // 表单数据
 const form = reactive({
@@ -26,10 +31,40 @@ const form = reactive({
 })
 
 // 登录按钮点击事件
-const handleLogin = () => {
-  console.log('登录信息：', form.username, form.password)
-  // 后面这里会调用后端接口
+const handleLogin = async () => {
+  try {
+    // 1. 调用登录接口，获取 Token
+    const res = await api.post('/user/login', {
+      username: form.username,
+      password: form.password
+    })
+
+    // 2. 保存 Token
+    localStorage.setItem('token', res.data.access_token)
+
+    // 3. 获取用户信息（调用 /user/me 接口）
+    const userRes = await api.get('/user/me', {
+      headers: { Authorization: 'Bearer ' + res.data.access_token }
+    })
+
+    // 4. 保存用户信息
+    localStorage.setItem('username', userRes.data.username)
+    localStorage.setItem('role', userRes.data.role)
+
+    ElMessage.success('登录成功！')
+
+    // 5. 根据角色跳转不同页面
+    if (userRes.data.role === 'admin') {
+      router.push('/admin')
+    } else {
+      router.push('/home')
+    }
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail || '登录失败')
+  }
 }
+
+
 </script>
 
 <style scoped>

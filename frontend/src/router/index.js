@@ -1,26 +1,34 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
+import Home from '../views/Home.vue'
+import AdminHome from '../views/admin/AdminHome.vue'
 
-// 定义路由规则
 const routes = [
   {
-    path: '/',           // 访问根路径
-    redirect: '/login'   // 自动跳转到登录页
+    path: '/',
+    redirect: '/login'
   },
   {
-    path: '/login',      // 登录页
+    path: '/login',
     component: Login
   },
   {
-    path: '/register',   // 注册页
+    path: '/register',
     component: Register
+  },
+  {
+    path: '/home',        // 普通用户首页
+    component: Home
+  },
+  {
+    path: '/admin',       // 管理员首页
+    component: AdminHome
   }
 ]
 
-// 创建路由实例
 const router = createRouter({
-  history: createWebHistory(),  // 使用 HTML5 历史模式
+  history: createWebHistory(),
   routes
 })
 

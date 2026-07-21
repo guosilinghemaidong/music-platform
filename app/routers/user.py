@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.user import User
-from app.utils.auth import verify_password, create_access_token
+from app.utils.auth import verify_password, create_access_token,hash_password
 from app.schemas.user import UserRegister, UserResponse, UserLogin, TokenResponse, UserUpdate
 from jose import jwt, JWTError
 from app.config import SECRET_KEY, ALGORITHM
@@ -45,7 +45,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_datab
     # 2. 创建新用户对象
     new_user = User(
         username=user_data.username,
-        password=user_data.password,  # 暂时明文存储，后面改成加密
+        password=hash_password(user_data.password),     #加密存储
         nickname=user_data.nickname,
     )
 
