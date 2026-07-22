@@ -2,7 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import user
 from app.routers import music
-
+from app.routers import singer
+from app.routers import album
+from app.routers import category
+from fastapi.staticfiles import StaticFiles
+from app.routers import upload
 
 app = FastAPI(title="音乐社交平台", description="FastAPI + Vue3 全栈项目")
 
@@ -17,6 +21,10 @@ app.add_middleware(
 
 app.include_router(user.router)
 app.include_router(music.router)
+app.include_router(singer.router)
+app.include_router(album.router)
+app.include_router(category.router)
+
 
 @app.get("/")
 async def root():
@@ -25,3 +33,9 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+# 注册上传路由
+app.include_router(upload.router)
+
+# 挂载静态文件目录（让上传的文件可以通过 URL 访问）
+app.mount("/static", StaticFiles(directory="static"), name="static")
