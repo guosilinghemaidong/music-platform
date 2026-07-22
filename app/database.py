@@ -15,3 +15,8 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,   # 指定使用异步 Session
     expire_on_commit=False # 提交后不过期（避免提交后自动重新查询）
 )
+
+async def get_db():
+    """获取数据库会话（依赖注入用）"""
+    async with AsyncSessionLocal() as session:
+        yield session

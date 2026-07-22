@@ -5,6 +5,10 @@ from app.routers import music
 from app.routers import singer
 from app.routers import album
 from app.routers import category
+from app.routers import collection
+from app.routers import music_like
+from app.routers import follow
+from app.routers import comment
 from fastapi.staticfiles import StaticFiles
 from app.routers import upload
 
@@ -24,6 +28,11 @@ app.include_router(music.router)
 app.include_router(singer.router)
 app.include_router(album.router)
 app.include_router(category.router)
+app.include_router(collection.router)
+app.include_router(music_like.router)
+app.include_router(follow.router)
+app.include_router(comment.router)
+
 
 
 @app.get("/")
