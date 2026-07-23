@@ -11,6 +11,9 @@ from app.routers import follow
 from app.routers import comment
 from fastapi.staticfiles import StaticFiles
 from app.routers import upload
+from app.routers import post
+from app.routers import admin
+
 
 app = FastAPI(title="音乐社交平台", description="FastAPI + Vue3 全栈项目")
 
@@ -32,6 +35,8 @@ app.include_router(collection.router)
 app.include_router(music_like.router)
 app.include_router(follow.router)
 app.include_router(comment.router)
+app.include_router(post.router)
+app.include_router(admin.router)
 
 
 

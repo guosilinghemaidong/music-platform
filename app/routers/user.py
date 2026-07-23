@@ -155,3 +155,10 @@ async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_database))
     return user
 
 
+# 依赖函数：检查是否是管理员
+async def get_current_admin(
+    current_user: User = Depends(get_current_user)  # 先获取当前用户
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="需要管理员权限")
+    return current_user
