@@ -6,3 +6,9 @@ DATABASE_URL = "mysql+aiomysql://root:ztsmysql@localhost:3306/music_platform?cha
 # JWT 配置
 SECRET_KEY = "your-secret-key-change-later"
 ALGORITHM = "HS256"
+
+
+# Redis 配置
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_DB = 0

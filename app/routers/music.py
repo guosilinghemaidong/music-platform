@@ -7,6 +7,9 @@ from app.models.music import Music
 from app.schemas.music import MusicResponse, MusicListResponse, MusicCreate, MusicUpdate
 
 
+import json
+from app.redis import redis_client
+
 router = APIRouter(prefix="/music", tags=["音乐"])
 
 # 复用 user.py 里的 get_database（获取数据库会话）
@@ -28,6 +31,14 @@ async def get_music_list(
     page_size: int = 10,     # 每页数量，默认 10 条
     db: AsyncSession = Depends(get_database)
 ):
+    # 1. 构造缓存 Key
+    cache_key = f"music:list:page={page}:page_size={page_size}"
+
+    # 2. 尝试从 Redis 获取缓存
+    cached_data = redis_client.get(cache_key)
+    if cached_data:
+        # 有缓存，直接返回
+        return json.loads(cached_data)
     # 1. 计算跳过多少条
     offset = (page - 1) * page_size
 
@@ -41,15 +52,31 @@ async def get_music_list(
         .offset(offset)
         .limit(page_size)
     )
-    items = result.scalars().all()
-
-    # 4. 返回分页结果
-    return {
+    items = [
+        {
+            "id": m.id,
+            "title": m.title,
+            "singer_id": m.singer_id,
+            "album_id": m.album_id,
+            "category_id": m.category_id,
+            "file_url": m.file_url,
+            "cover": m.cover,
+            "duration": m.duration,
+            "play_count": m.play_count,
+            "status": m.status
+        }
+        for m in result.scalars().all()
+    ]
+    # 4. 把结果存入 Redis，设置 60 秒过期
+    result_dict = {
         "items": items,
         "total": total,
         "page": page,
         "page_size": page_size
     }
+    redis_client.setex(cache_key, 60, json.dumps(result_dict))
+
+    return result_dict
 
 @router.get("/detail/{music_id}", response_model=MusicResponse)
 async def get_music_detail(music_id: int, db: AsyncSession = Depends(get_database)):

@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from app.routers import upload
 from app.routers import post
 from app.routers import admin
-
+from app.redis import redis_client
 
 app = FastAPI(title="音乐社交平台", description="FastAPI + Vue3 全栈项目")
 
@@ -53,3 +53,12 @@ app.include_router(upload.router)
 
 # 挂载静态文件目录（让上传的文件可以通过 URL 访问）
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/test-redis")
+async def test_redis():
+    # 写入
+    redis_client.set("test_key", "hello redis")
+    # 读取
+    value = redis_client.get("test_key")
+    return {"message": value}
