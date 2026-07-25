@@ -4,7 +4,7 @@ from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.user import User
 from app.utils.auth import verify_password, create_access_token,hash_password
-from app.schemas.user import UserRegister, UserResponse, UserLogin, TokenResponse, UserUpdate
+from app.schemas.user import UserRegister, UserResponse, UserLogin, TokenResponse, UserUpdate, PasswordUpdate
 from jose import jwt, JWTError
 from app.config import SECRET_KEY, ALGORITHM
 from fastapi.security import APIKeyHeader
@@ -73,10 +73,14 @@ async def login(user_data: UserLogin, db: AsyncSession = Depends(get_database)):
     if not verify_password(user_data.password, user.password):
         raise HTTPException(status_code=400, detail="用户名或密码错误")
 
-    # 4. 生成 Token
+    # 4. 检查账号是否被封禁（status=0 表示禁用）
+    if user.status == 0:
+        raise HTTPException(status_code=403, detail="该账号已被封禁，请联系管理员")
+
+    # 5. 生成 Token
     access_token = create_access_token(data={"sub": user.username})
 
-    # 5. 返回 Token
+    # 6. 返回 Token
     return {
         "access_token": access_token,
         "token_type": "bearer"
@@ -141,6 +145,26 @@ async def update_my_info(
     # 提交修改
     await db.flush()
     return current_user
+
+
+# 修改当前登录用户的密码
+@router.put("/password")
+async def change_password(
+    password_data: PasswordUpdate,                      # 旧密码 + 新密码
+    current_user: User = Depends(get_current_user),     # 当前登录用户
+    db: AsyncSession = Depends(get_database)            # 数据库会话
+):
+    # 1. 验证旧密码是否正确
+    if not verify_password(password_data.old_password, current_user.password):
+        raise HTTPException(status_code=400, detail="旧密码错误")
+
+    # 2. 旧密码正确，更新为新密码（加密存储）
+    current_user.password = hash_password(password_data.new_password)
+
+    # 3. 提交修改
+    await db.flush()
+    return {"message": "密码修改成功"}
+
 
 # 根据 ID 查看其他用户信息（不需要登录）
 @router.get("/{user_id}", response_model=UserResponse)

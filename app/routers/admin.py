@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.routers.user import get_database
-
+from pydantic import BaseModel
 from app.models.user import User
 from app.models.music import Music
 from app.routers.user import get_current_admin
@@ -10,6 +10,7 @@ from app.schemas.admin import (
     AdminUserResponse, AdminUserListResponse, UserStatusUpdate, UserStatusResponse,
     AdminMusicResponse, AdminMusicListResponse, MusicAuditUpdate, MusicAuditResponse
 )
+from app.schemas.music import MusicCreate
 
 
 router = APIRouter(prefix="/admin", tags=["管理员"])
@@ -22,19 +23,24 @@ router = APIRouter(prefix="/admin", tags=["管理员"])
 async def get_user_list(
     page: int = 1,           # 页码，默认第 1 页
     page_size: int = 10,     # 每页数量，默认 10 条
+    role: str = "user",      # 按角色筛选，默认只查普通用户（传 "all" 查全部）
     current_user: User = Depends(get_current_admin),  # 需要管理员权限
     db: AsyncSession = Depends(get_database)
 ):
-    # 1. 计算跳过多少条（和 singer/list 一样的分页逻辑）
-    offset = (page - 1) * page_size
+    # 1. 构造基础查询（根据 role 参数决定是否筛选）
+    query = select(User)
+    if role != "all":
+        # 默认只查普通用户（role="user"），不显示管理员
+        query = query.where(User.role == role)
 
-    # 2. 查询用户总数（SELECT COUNT(*) FROM user）
-    total_result = await db.execute(select(User))
+    # 2. 查询符合条件的用户总数
+    total_result = await db.execute(query)
     total = len(total_result.scalars().all())
 
-    # 3. 查询当前页的用户数据（SELECT * FROM user LIMIT page_size OFFSET offset）
+    # 3. 分页查询当前页数据
+    offset = (page - 1) * page_size
     result = await db.execute(
-        select(User)
+        query
         .offset(offset)
         .limit(page_size)
     )
@@ -78,25 +84,27 @@ async def update_user_status(
 # ==================== 音乐审核 ====================
 
 @router.get("/music/list", response_model=AdminMusicListResponse)
-async def get_pending_music_list(
+async def get_admin_music_list(
     page: int = 1,           # 页码，默认第 1 页
     page_size: int = 10,     # 每页数量，默认 10 条
+    status: int = -1,        # 状态筛选：-1=全部，0=待审核/已下架，1=已上架
     current_user: User = Depends(get_current_admin),  # 需要管理员权限
     db: AsyncSession = Depends(get_database)
 ):
-    # 1. 计算跳过多少条
-    offset = (page - 1) * page_size
+    # 1. 构造基础查询（根据 status 参数决定是否筛选）
+    query = select(Music)
+    if status >= 0:
+        # status >= 0 时按具体状态筛选，-1 表示不筛选（查全部）
+        query = query.where(Music.status == status)
 
-    # 2. 查询待审核音乐总数（status=0 表示下架/待审核）
-    total_result = await db.execute(
-        select(Music).where(Music.status == 0)
-    )
+    # 2. 查询符合条件的音乐总数
+    total_result = await db.execute(query)
     total = len(total_result.scalars().all())
 
-    # 3. 查询当前页的待审核音乐
+    # 3. 分页查询当前页数据
+    offset = (page - 1) * page_size
     result = await db.execute(
-        select(Music)
-        .where(Music.status == 0)  # 只查下架状态的音乐
+        query
         .offset(offset)
         .limit(page_size)
     )
@@ -135,3 +143,60 @@ async def audit_music(
     await db.flush()
 
     return music
+
+
+# ==================== 管理员添加音乐 ====================
+
+@router.post("/music/add")
+async def admin_add_music(
+    data: MusicCreate,                         # 请求体：音乐信息（复用 MusicCreate）
+    current_user: User = Depends(get_current_admin),  # 需要管理员权限
+    db: AsyncSession = Depends(get_database)
+):
+    # 1. 检查歌名是否已存在
+    result = await db.execute(select(Music).where(Music.title == data.title))
+    existing = result.scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(status_code=400, detail="歌曲名已存在")
+
+    # 2. 创建新音乐，状态设为 0（待审核），不能直接上架
+    new_music = Music(**data.model_dump())
+    new_music.status = 0
+    db.add(new_music)
+    await db.flush()
+
+    return {"message": "添加成功，等待审核", "id": new_music.id}
+
+
+# ==================== 管理员修改用户信息 ====================
+
+class AdminUserUpdate(BaseModel):
+    """管理员修改用户信息的请求参数"""
+    nickname: str | None = None
+    avatar: str | None = None
+
+
+@router.put("/user/{user_id}/update")
+async def admin_update_user(
+        user_id: int,
+        data: AdminUserUpdate,
+        current_user: User = Depends(get_current_admin),
+        db: AsyncSession = Depends(get_database)
+):
+    # 1. 查找目标用户
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="用户不存在")
+
+    # 2. 更新用户信息（只更新传了的字段）
+    if data.nickname is not None:
+        user.nickname = data.nickname
+    if data.avatar is not None:
+        user.avatar = data.avatar
+
+    await db.flush()
+
+    return {"message": "修改成功", "id": user.id, "nickname": user.nickname, "avatar": user.avatar}
+
