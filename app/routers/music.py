@@ -198,3 +198,61 @@ async def get_music_lyric(music_id: int, db: AsyncSession = Depends(get_database
         lyric_text = ""
 
     return {"lyric": lyric_text}
+
+
+# ==================== 热门音乐（播放量排行） ====================
+# GET /music/hot
+# 返回播放量最高的前 6 首已上架音乐，用于首页推荐
+@router.get("/hot")
+async def get_hot_music(
+    limit: int = 6,
+    db: AsyncSession = Depends(get_database)
+):
+    # 1. 按播放次数倒序查询
+    result = await db.execute(
+        select(Music)
+        .where(Music.status == 1)
+        .order_by(Music.play_count.desc())
+        .limit(limit)
+    )
+    items = result.scalars().all()
+
+    # 2. 返回列表
+    return [
+        {
+            "id": m.id,
+            "title": m.title,
+            "singer_id": m.singer_id,
+            "cover": m.cover,
+            "file_url": m.file_url,
+            "play_count": m.play_count
+        }
+        for m in items
+    ]
+
+
+# ==================== 播放次数 +1 ====================
+# POST /music/{music_id}/play
+# 每次播放一首歌时调用，play_count 自动加 1
+@router.post("/{music_id}/play")
+async def increment_play_count(
+    music_id: int,
+    db: AsyncSession = Depends(get_database)
+):
+    # 1. 查询音乐
+    result = await db.execute(select(Music).where(Music.id == music_id))
+    music = result.scalar_one_or_none()
+    if music is None:
+        raise HTTPException(status_code=404, detail="音乐未找到")
+
+    # 2. 播放次数 +1
+    music.play_count += 1
+    await db.flush()
+
+    # 3. 清除音乐列表的 Redis 缓存（因为 play_count 变了，旧缓存数据不准确）
+    #    用 keys 匹配所有 music:list: 开头的缓存 key，批量删除
+    cache_keys = redis_client.keys("music:list:*")
+    if cache_keys:
+        redis_client.delete(*cache_keys)
+
+    return {"play_count": music.play_count}

@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+import datetime
 
 
 # ==================== 用户管理相关 ====================
@@ -77,6 +78,49 @@ class MusicAuditResponse(BaseModel):
     id: int      # 音乐ID
     title: str   # 歌曲名
     status: int  # 审核后的状态
+
+    class Config:
+        from_attributes = True
+
+
+# ==================== 动态管理相关 ====================
+
+# 管理员查看动态列表时，单条动态的返回格式
+class AdminPostResponse(BaseModel):
+    id: int
+    user_id: int
+    content: str
+    images: str | None = None
+    music_id: int | None = None
+    status: int
+    like_count: int
+    comment_count: int
+    create_time: datetime.datetime
+    # 以下字段手动填充
+    username: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
+# 管理员动态列表（带分页）
+class AdminPostListResponse(BaseModel):
+    items: list[AdminPostResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+# 管理员审核动态的请求参数
+class PostAuditUpdate(BaseModel):
+    status: int  # 1=通过，2=拒绝
+
+
+# 管理员审核动态后的返回格式
+class PostAuditResponse(BaseModel):
+    id: int
+    content: str
+    status: int
 
     class Config:
         from_attributes = True

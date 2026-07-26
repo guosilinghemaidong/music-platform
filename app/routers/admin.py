@@ -5,10 +5,13 @@ from app.routers.user import get_database
 from pydantic import BaseModel
 from app.models.user import User
 from app.models.music import Music
+from app.models.post import Post
+from app.models.post_comment import PostComment
 from app.routers.user import get_current_admin
 from app.schemas.admin import (
     AdminUserResponse, AdminUserListResponse, UserStatusUpdate, UserStatusResponse,
-    AdminMusicResponse, AdminMusicListResponse, MusicAuditUpdate, MusicAuditResponse
+    AdminMusicResponse, AdminMusicListResponse, MusicAuditUpdate, MusicAuditResponse,
+    AdminPostResponse, AdminPostListResponse, PostAuditUpdate, PostAuditResponse
 )
 from app.schemas.music import MusicCreate
 
@@ -199,4 +202,127 @@ async def admin_update_user(
     await db.flush()
 
     return {"message": "修改成功", "id": user.id, "nickname": user.nickname, "avatar": user.avatar}
+
+
+# ==================== 动态管理 ====================
+
+@router.get("/post/list", response_model=AdminPostListResponse)
+async def get_admin_post_list(
+    page: int = 1,
+    page_size: int = 10,
+    status: int = -1,        # -1=全部，0=待审核，1=已通过，2=已拒绝
+    current_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_database)
+):
+    # 1. 构造查询
+    query = select(Post)
+    if status >= 0:
+        query = query.where(Post.status == status)
+
+    # 2. 查总数
+    total_result = await db.execute(query)
+    total = len(total_result.scalars().all())
+
+    # 3. 分页查询，按时间倒序
+    offset = (page - 1) * page_size
+    result = await db.execute(
+        query.order_by(Post.create_time.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+    posts = result.scalars().all()
+
+    # 4. 批量查询发布者信息
+    user_ids = list(set([p.user_id for p in posts]))
+    user_map = {}
+    if user_ids:
+        user_result = await db.execute(select(User).where(User.id.in_(user_ids)))
+        users = user_result.scalars().all()
+        user_map = {u.id: (u.nickname or u.username) for u in users}
+
+    # 5. 组装返回数据
+    items = []
+    for p in posts:
+        items.append(AdminPostResponse(
+            id=p.id,
+            user_id=p.user_id,
+            content=p.content,
+            images=p.images,
+            music_id=p.music_id,
+            status=p.status,
+            like_count=p.like_count,
+            comment_count=p.comment_count,
+            create_time=p.create_time,
+            username=user_map.get(p.user_id, "未知用户")
+        ))
+
+    return AdminPostListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size
+    )
+
+
+@router.put("/post/{post_id}/audit", response_model=PostAuditResponse)
+async def audit_post(
+    post_id: int,
+    data: PostAuditUpdate,
+    current_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_database)
+):
+    # 1. 查找动态
+    result = await db.execute(select(Post).where(Post.id == post_id))
+    post = result.scalar_one_or_none()
+    if post is None:
+        raise HTTPException(status_code=404, detail="动态不存在")
+
+    # 2. 检查状态值（1=通过，2=拒绝）
+    if data.status not in [1, 2]:
+        raise HTTPException(status_code=400, detail="状态值无效，必须是 1（通过）或 2（拒绝）")
+
+    # 3. 更新状态
+    post.status = data.status
+    await db.flush()
+    return post
+
+
+@router.delete("/post/{post_id}")
+async def admin_delete_post(
+    post_id: int,
+    current_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_database)
+):
+    result = await db.execute(select(Post).where(Post.id == post_id))
+    post = result.scalar_one_or_none()
+    if post is None:
+        raise HTTPException(status_code=404, detail="动态不存在")
+
+    await db.delete(post)
+    await db.flush()
+    return {"message": "删除成功"}
+
+
+@router.delete("/post/comment/{comment_id}")
+async def admin_delete_post_comment(
+    comment_id: int,
+    current_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_database)
+):
+    # 1. 查询评论
+    result = await db.execute(select(PostComment).where(PostComment.id == comment_id))
+    comment = result.scalar_one_or_none()
+    if comment is None:
+        raise HTTPException(status_code=404, detail="评论未找到")
+
+    # 2. 更新动态评论计数
+    post_result = await db.execute(select(Post).where(Post.id == comment.post_id))
+    post = post_result.scalar_one_or_none()
+    if post:
+        post.comment_count = max(0, post.comment_count - 1)
+
+    # 3. 删除评论
+    await db.delete(comment)
+    await db.flush()
+    return {"message": "评论删除成功"}
 

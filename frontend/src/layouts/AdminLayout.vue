@@ -16,11 +16,23 @@
           <el-menu-item index="/admin">
             <span>👥 用户管理</span>
           </el-menu-item>
+          <el-menu-item index="/admin/singer">
+            <span>🎤 歌手管理</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/album">
+            <span>💿 专辑管理</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/category">
+            <span>📂 分类管理</span>
+          </el-menu-item>
           <el-menu-item index="/admin/add-music">
             <span>📀 上架音乐</span>
           </el-menu-item>
           <el-menu-item index="/admin/music">
             <span>🎵 音乐审核</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/post">
+            <span>💬 动态管理</span>
           </el-menu-item>
         </el-menu>
       </el-aside>

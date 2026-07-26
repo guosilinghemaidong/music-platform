@@ -22,6 +22,12 @@
           <el-menu-item index="/collection">
             <span>❤️ 我的收藏</span>
           </el-menu-item>
+          <el-menu-item index="/community">
+            <span>💬 社区动态</span>
+          </el-menu-item>
+          <el-menu-item index="/follow">
+            <span>👥 我的关注</span>
+          </el-menu-item>
           <el-menu-item index="/profile">
             <span>👤 个人资料</span>
           </el-menu-item>
