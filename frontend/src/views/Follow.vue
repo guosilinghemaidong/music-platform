@@ -14,7 +14,7 @@
 
       <div v-for="user in userList" :key="user.id" class="user-card">
         <!-- 头像 -->
-        <el-avatar :size="48" :src="user.avatar ? 'http://localhost:8000' + user.avatar : ''">
+        <el-avatar :size="48" :src="user.avatar ? '' + user.avatar : ''">
           {{ user.nickname?.charAt(0) || user.username?.charAt(0) || '?' }}
         </el-avatar>
 

@@ -106,7 +106,7 @@ const editForm = reactive({
 // 头像的完整 URL（后端返回的是 /static/images/xxx 相对路径，需要拼上后端地址）
 const avatarUrl = computed(() => {
   if (userInfo.value.avatar) {
-    return 'http://localhost:8000' + userInfo.value.avatar
+    return '' + userInfo.value.avatar
   }
   return ''
 })

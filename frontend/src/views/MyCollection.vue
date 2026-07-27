@@ -183,7 +183,7 @@ const playFromCollection = (music) => {
 const getFullUrl = (path) => {
   if (!path) return ''
   if (path.startsWith('http')) return path
-  return 'http://localhost:8000' + path
+  return '' + path
 }
 
 // 格式化收藏时间（ISO 字符串 → 可读格式）

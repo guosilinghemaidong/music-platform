@@ -1,0 +1,43 @@
+# ==================== .dockerignore ====================
+# 作用：告诉 Docker 构建时忽略这些文件/目录（不复制到镜像里）
+# 类似 .gitignore，减小镜像体积、避免敏感信息泄露
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+env
+
+# Node.js
+frontend/node_modules
+frontend/dist
+
+# IDE / 编辑器
+.vscode
+.idea
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Docker 自身（避免递归复制）
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 文档
+docs
+*.md
+README*
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 环境变量（不要把密码打包进镜像）
+.env
+*.env

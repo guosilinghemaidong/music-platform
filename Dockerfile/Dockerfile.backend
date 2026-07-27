@@ -1,0 +1,29 @@
+# ==================== 后端 Dockerfile ====================
+# 作用：把 FastAPI 后端打包成 Docker 镜像
+# 基础镜像：Python 3.11 精简版（体积小，约 150MB）
+
+FROM python:3.11-slim
+
+# 设置工作目录（容器内的"当前文件夹"）
+WORKDIR /app
+
+# 先复制依赖文件，利用 Docker 缓存层
+# 只要 requirements.txt 没变，就不会重新 pip install（加速构建）
+COPY requirements.txt .
+
+# 安装 Python 依赖
+# --no-cache-dir：不缓存安装包，减小镜像体积
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制项目代码到容器里
+# 注意：COPY 的源路径是相对于 docker build 的执行目录的（项目根目录）
+COPY app/ ./app/
+COPY static/ ./static/
+
+# 暴露端口（只是声明，实际映射在 docker-compose 里配置）
+EXPOSE 8000
+
+# 启动命令：用 uvicorn 运行 FastAPI 应用
+# --host 0.0.0.0：监听所有网络接口（容器内必须这样写，不能用 127.0.0.1）
+# --reload：热重载（生产环境去掉这行）
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

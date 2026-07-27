@@ -83,7 +83,7 @@
         >
           <!-- 已上传：显示预览图 + 重新上传按钮 -->
           <div v-if="form.cover" class="upload-success">
-            <img :src="'http://localhost:8000' + form.cover" class="upload-preview" />
+            <img :src="'' + form.cover" class="upload-preview" />
             <el-button type="primary" link style="margin-left: 10px">重新上传</el-button>
           </div>
           <!-- 未上传：显示上传按钮 -->

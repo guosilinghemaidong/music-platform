@@ -1,8 +1,11 @@
 import axios from 'axios'
 
-// 创建 axios 实例，配置后端地址
+// 创建 axios 实例
 const api = axios.create({
-  baseURL: 'http://localhost:8000'  // 后端地址
+  // Vite 环境变量：
+  //   开发时（npm run dev）→ VITE_API_BASE_URL = http://localhost:8000
+  //   构建时（npm run build）→ VITE_API_BASE_URL = 空（走 Nginx 代理）
+  baseURL: import.meta.env.VITE_API_BASE_URL || ''
 })
 
 // ========== 请求拦截器：自动带上 Token ==========

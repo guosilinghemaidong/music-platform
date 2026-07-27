@@ -212,7 +212,7 @@ const playFromDiscover = (music) => {
 const getCoverUrl = (cover) => {
   if (!cover) return ''
   if (cover.startsWith('http')) return cover
-  return 'http://localhost:8000' + cover
+  return '' + cover
 }
 
 // 切换每页数量时，重置到第一页并重新请求

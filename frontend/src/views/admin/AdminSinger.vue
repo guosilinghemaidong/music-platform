@@ -12,7 +12,7 @@
         <template #default="{ row }">
           <img
             v-if="row.avatar"
-            :src="'http://localhost:8000' + row.avatar"
+            :src="'' + row.avatar"
             style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover"
           />
           <span v-else style="color: #999">无</span>
@@ -69,7 +69,7 @@
             :before-upload="beforeImageUpload"
             :show-file-list="false"
           >
-            <img v-if="dialogForm.avatar" :src="'http://localhost:8000' + dialogForm.avatar" class="avatar-preview" />
+            <img v-if="dialogForm.avatar" :src="'' + dialogForm.avatar" class="avatar-preview" />
             <el-button v-else type="primary" size="small">上传头像</el-button>
           </el-upload>
           <span v-if="dialogForm.avatar" style="margin-left: 10px; color: #67c23a; font-size: 12px">已上传</span>

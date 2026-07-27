@@ -23,7 +23,7 @@
         <template #default="{ row }">
           <template v-if="parseImages(row.images).length > 0">
             <img
-              :src="'http://localhost:8000' + parseImages(row.images)[0]"
+              :src="'' + parseImages(row.images)[0]"
               style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px"
             />
             <span v-if="parseImages(row.images).length > 1" style="margin-left: 4px; color: #999; font-size: 12px">

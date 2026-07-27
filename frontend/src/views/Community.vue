@@ -51,7 +51,7 @@
       <!-- 已选图片预览 -->
       <div v-if="uploadedImages.length > 0" class="image-preview-list">
         <div v-for="(img, index) in uploadedImages" :key="index" class="preview-item">
-          <img :src="'http://localhost:8000' + img" />
+          <img :src="'' + img" />
           <el-icon class="remove-btn" @click="removeImage(index)"><Close /></el-icon>
         </div>
       </div>
@@ -74,7 +74,7 @@
       <div v-for="post in postList" :key="post.id" class="post-card">
         <!-- 头部：作者信息 -->
         <div class="post-header">
-          <el-avatar :size="40" :src="post.avatar ? 'http://localhost:8000' + post.avatar : ''">
+          <el-avatar :size="40" :src="post.avatar ? '' + post.avatar : ''">
             {{ post.username?.charAt(0) || '?' }}
           </el-avatar>
           <div class="post-author-info">
@@ -102,7 +102,7 @@
           <img
             v-for="(img, idx) in parseImages(post.images)"
             :key="idx"
-            :src="'http://localhost:8000' + img"
+            :src="'' + img"
             class="post-image"
           />
         </div>
@@ -111,7 +111,7 @@
         <div v-if="post.music_id && musicMap[post.music_id]" class="post-music-card" @click="playMusic(post.music_id)">
           <img
             v-if="musicMap[post.music_id].cover"
-            :src="'http://localhost:8000' + musicMap[post.music_id].cover"
+            :src="'' + musicMap[post.music_id].cover"
             class="music-cover"
           />
           <div class="music-info">
@@ -163,7 +163,7 @@
           <!-- 评论列表 -->
           <div v-if="commentsMap[post.id]" class="comment-list">
             <div v-for="c in commentsMap[post.id]" :key="c.id" class="comment-item">
-              <el-avatar :size="28" :src="c.avatar ? 'http://localhost:8000' + c.avatar : ''">
+              <el-avatar :size="28" :src="c.avatar ? '' + c.avatar : ''">
                 {{ c.username?.charAt(0) || '?' }}
               </el-avatar>
               <div class="comment-body">

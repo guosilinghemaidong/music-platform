@@ -20,7 +20,7 @@
         <template #default="{ row }">
           <img
             v-if="row.cover"
-            :src="'http://localhost:8000' + row.cover"
+            :src="'' + row.cover"
             style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover"
           />
           <span v-else style="color: #999">无</span>
@@ -82,7 +82,7 @@
             :before-upload="beforeImageUpload"
             :show-file-list="false"
           >
-            <img v-if="dialogForm.cover" :src="'http://localhost:8000' + dialogForm.cover" class="cover-preview" />
+            <img v-if="dialogForm.cover" :src="'' + dialogForm.cover" class="cover-preview" />
             <el-button v-else type="primary" size="small">上传封面</el-button>
           </el-upload>
           <span v-if="dialogForm.cover" style="margin-left: 10px; color: #67c23a; font-size: 12px">已上传</span>
