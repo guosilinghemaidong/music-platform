@@ -1,0 +1,13 @@
+/* 全局通用样式 */
+
+/* 歌手名链接样式 —— 用于所有显示歌手名的地方 */
+.singer-link {
+  color: #666;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.singer-link:hover {
+  color: #409eff;
+}

@@ -23,7 +23,7 @@ services:
       MYSQL_DATABASE: music_platform    # 自动创建这个数据库
       MYSQL_CHARSET: utf8mb4           # 字符集（支持 emoji）
     ports:
-      - "3306:3306"                # 宿主机端口:容器端口（方便本地用 Navicat 等工具连接）
+      - "3307:3306"                # 宿主机用 3307 避免和本地 MySQL 冲突，容器内仍是 3306
     volumes:
       - mysql_data:/var/lib/mysql  # 数据持久化（容器删了数据不丢）
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -53,7 +53,7 @@ services:
       DATABASE_URL: mysql+aiomysql://root:root123456@db:3306/music_platform?charset=utf8mb4
       REDIS_HOST: redis            # redis 是上面 redis 服务的容器名
       REDIS_PORT: 6379
-      SECRET_KEY: your-secret-key-change-later
+      SECRET_KEY: M3GVPITLAOYk5Q5qzZVYkd1XzyTKwPXh8b1kx_WGhsY
     depends_on:
       - db                         # 等 MySQL 启动后再启动后端
       - redis                      # 等 Redis 启动后再启动后端
@@ -68,7 +68,7 @@ services:
     container_name: music_frontend
     restart: always
     ports:
-      - "80:80"                    # 浏览器通过 http://localhost 访问
+      - "8080:80"                  # 宿主机用 8080 避免和本地 80 端口冲突，访问 http://localhost:8080
     depends_on:
       - backend                    # 等后端启动后再启动前端
 

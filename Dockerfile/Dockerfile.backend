@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 注意：COPY 的源路径是相对于 docker build 的执行目录的（项目根目录）
 COPY app/ ./app/
 COPY static/ ./static/
+COPY seed_data.py ./
 
 # 暴露端口（只是声明，实际映射在 docker-compose 里配置）
 EXPOSE 8000

@@ -8,7 +8,7 @@ DATABASE_URL = os.environ.get(
 )
 
 # JWT 配置
-SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-change-later")
+SECRET_KEY = os.environ.get("SECRET_KEY", "M3GVPITLAOYk5Q5qzZVYkd1XzyTKwPXh8b1kx_WGhsY")
 ALGORITHM = "HS256"
 
 # Redis 配置
