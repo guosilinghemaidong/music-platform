@@ -17,6 +17,12 @@ import AdminCategory from '../views/admin/AdminCategory.vue'
 import AdminPost from '../views/admin/AdminPost.vue'
 import Community from '../views/Community.vue'
 import Follow from '../views/Follow.vue'
+import SearchView from '../views/SearchView.vue'
+import RecentView from '../views/RecentView.vue'
+import PlaylistView from '../views/PlaylistView.vue'
+import PlaylistDetail from '../views/PlaylistDetail.vue'
+import RankingView from '../views/RankingView.vue'
+import SingerDetail from '../views/SingerDetail.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -32,6 +38,12 @@ const routes = [
       { path: 'collection', component: MyCollection },
       { path: 'community', component: Community },
       { path: 'follow', component: Follow },
+      { path: 'search', component: SearchView },
+      { path: 'recent', component: RecentView },
+      { path: 'playlist', component: PlaylistView },
+      { path: 'playlist/:id', component: PlaylistDetail },
+      { path: 'ranking', component: RankingView },
+      { path: 'singer/:id', component: SingerDetail },
       { path: 'profile', component: Profile },
       { path: 'about', component: About }
     ]

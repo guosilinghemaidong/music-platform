@@ -141,6 +141,8 @@ async def update_my_info(
         current_user.nickname = user_data.nickname
     if user_data.avatar is not None:
         current_user.avatar = user_data.avatar
+    if user_data.signature is not None:
+        current_user.signature = user_data.signature
 
     # 提交修改
     await db.flush()

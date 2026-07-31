@@ -47,6 +47,9 @@
             {{ userInfo.role === 'admin' ? '管理员' : '普通用户' }}
           </el-tag>
         </el-descriptions-item>
+        <el-descriptions-item label="个性签名">
+          {{ userInfo.signature || '未设置' }}
+        </el-descriptions-item>
       </el-descriptions>
 
       <!-- 编辑模式：表单修改信息 -->
@@ -56,6 +59,9 @@
         </el-form-item>
         <el-form-item label="昵称">
           <el-input v-model="editForm.nickname" placeholder="请输入昵称" />
+        </el-form-item>
+        <el-form-item label="个性签名">
+          <el-input v-model="editForm.signature" type="textarea" :rows="2" placeholder="写一句话介绍自己吧" />
         </el-form-item>
       </el-form>
     </el-card>
@@ -94,13 +100,15 @@ const userInfo = ref({
   username: '',
   nickname: '',
   avatar: '',
+  signature: '',
   role: ''
 })
 
 // 编辑表单的数据
 const editForm = reactive({
   nickname: '',
-  avatar: ''
+  avatar: '',
+  signature: ''
 })
 
 // 头像的完整 URL（后端返回的是 /static/images/xxx 相对路径，需要拼上后端地址）
@@ -138,6 +146,7 @@ const fetchUserInfo = async () => {
 const startEdit = () => {
   editForm.nickname = userInfo.value.nickname || ''
   editForm.avatar = userInfo.value.avatar || ''
+  editForm.signature = userInfo.value.signature || ''
   editing.value = true
 }
 
@@ -152,7 +161,8 @@ const handleSave = async () => {
     const token = localStorage.getItem('token')
     await api.put('/user/me', {
       nickname: editForm.nickname,
-      avatar: editForm.avatar
+      avatar: editForm.avatar,
+      signature: editForm.signature
     }, {
       headers: { Authorization: 'Bearer ' + token }
     })
@@ -160,6 +170,7 @@ const handleSave = async () => {
     // 更新页面上显示的信息
     userInfo.value.nickname = editForm.nickname
     userInfo.value.avatar = editForm.avatar
+    userInfo.value.signature = editForm.signature
 
     // 同步更新 localStorage 里的用户名（如果改了昵称的话）
     localStorage.setItem('username', editForm.nickname || userInfo.value.username)

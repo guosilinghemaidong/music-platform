@@ -30,6 +30,14 @@
             <StarFilled v-if="isFavorited" />
             <Star v-else />
           </el-icon>
+          <!-- 加入歌单按钮（+号） -->
+          <el-icon
+            class="playlist-add-btn"
+            :size="16"
+            @click.stop="openPlaylistDialog"
+          >
+            <Plus />
+          </el-icon>
         </div>
         <div class="player-singer">{{ getSingerName(playerStore.currentMusic.singer_id) }}</div>
       </div>
@@ -104,12 +112,41 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- ========== 加入歌单弹窗 ========== -->
+    <el-dialog v-model="showPlaylistDialog" title="收藏到歌单" width="380px">
+      <!-- 当前歌曲提示 -->
+      <div class="playlist-dialog-song">
+        <span>「{{ playerStore.currentMusic?.title }}」</span>
+      </div>
+
+      <!-- 歌单列表 -->
+      <div v-loading="playlistLoading" class="playlist-dialog-list">
+        <div
+          v-for="item in myPlaylists"
+          :key="item.id"
+          class="playlist-dialog-item"
+          @click="addToPlaylist(item.id)"
+        >
+          <el-icon :size="18" color="#999"><FolderOpened /></el-icon>
+          <div class="playlist-dialog-item-info">
+            <div class="playlist-dialog-item-name">{{ item.name }}</div>
+            <div class="playlist-dialog-item-count">{{ item.music_count }} 首</div>
+          </div>
+        </div>
+        <!-- 没有歌单时 -->
+        <div v-if="!playlistLoading && myPlaylists.length === 0" class="playlist-dialog-empty">
+          <span>还没有歌单，</span>
+          <el-button type="primary" link @click="goCreatePlaylist">去创建一个</el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
-import { Headset, VideoPlay, VideoPause, CaretLeft, CaretRight, Star, StarFilled } from '@element-plus/icons-vue'
+import { Headset, VideoPlay, VideoPause, CaretLeft, CaretRight, Star, StarFilled, Plus, FolderOpened } from '@element-plus/icons-vue'
 import { usePlayerStore } from '../stores/player'
 import api from '../api/index.js'
 import { ElMessage } from 'element-plus'
@@ -171,6 +208,56 @@ const toggleFavorite = async () => {
 }
 
 // ========== 歌词弹窗 ==========
+
+// ========== 加入歌单弹窗 ==========
+
+// 弹窗状态
+const showPlaylistDialog = ref(false)
+const myPlaylists = ref([])
+const playlistLoading = ref(false)
+
+// 打开弹窗时加载歌单列表
+const openPlaylistDialog = async () => {
+  if (!playerStore.currentMusic) return
+  showPlaylistDialog.value = true
+  playlistLoading.value = true
+  try {
+    const res = await api.get('/playlist/my')
+    myPlaylists.value = res.data
+  } catch {
+    myPlaylists.value = []
+  } finally {
+    playlistLoading.value = false
+  }
+}
+
+// 把当前歌曲添加到指定歌单
+const addToPlaylist = async (playlistId) => {
+  try {
+    await api.post(`/playlist/${playlistId}/add`, {
+      music_id: playerStore.currentMusic.id
+    })
+    ElMessage.success('已添加到歌单')
+    showPlaylistDialog.value = false
+    // 更新歌单列表里的歌曲数量
+    const item = myPlaylists.value.find(p => p.id === playlistId)
+    if (item) item.music_count += 1
+  } catch (error) {
+    if (error.response && error.response.status === 400) {
+      ElMessage.warning('这首歌已在歌单中')
+    } else {
+      ElMessage.error('添加失败')
+    }
+  }
+}
+
+// 跳转到歌单页面创建
+const goCreatePlaylist = () => {
+  showPlaylistDialog.value = false
+  window.location.href = '/playlist'
+}
+
+// ========== 歌词弹窗（原有） ==========
 
 // 弹窗是否显示
 const showLyricDialog = ref(false)
@@ -489,6 +576,69 @@ onUnmounted(() => {
 /* 已收藏状态：金色 */
 .is-favorite {
   color: #f7ba2a;
+}
+
+/* 加入歌单按钮样式 */
+.playlist-add-btn {
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.playlist-add-btn:hover {
+  color: #409EFF;
+  transform: scale(1.2);
+}
+
+/* ===== 加入歌单弹窗内容 ===== */
+.playlist-dialog-song {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.playlist-dialog-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.playlist-dialog-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.playlist-dialog-item:hover {
+  background: #f0f7ff;
+}
+
+.playlist-dialog-item-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.playlist-dialog-item-name {
+  font-size: 14px;
+  color: #333;
+}
+
+.playlist-dialog-item-count {
+  font-size: 12px;
+  color: #bbb;
+}
+
+.playlist-dialog-empty {
+  text-align: center;
+  color: #999;
+  padding: 20px 0;
+  font-size: 13px;
 }
 
 /* ===== 歌词弹窗内容 ===== */

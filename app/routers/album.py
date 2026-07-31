@@ -27,24 +27,32 @@ async def get_database():
 async def get_album_list(
     page: int = 1,           # 页码，默认第 1 页
     page_size: int = 10,     # 每页数量，默认 10 条
+    keyword: str = "",       # 模糊搜索专辑名关键词
     db: AsyncSession = Depends(get_database)
 ):
-    # 1. 计算跳过多少条
+    # 1. 构造基础查询
+    query = select(Album)
+
+    # 2. 如果有搜索关键词，按专辑名模糊匹配
+    if keyword:
+        query = query.where(Album.name.like(f"%{keyword}%"))
+
+    # 3. 计算跳过多少条
     offset = (page - 1) * page_size
 
-    # 2. 查询总数（SELECT COUNT(*) FROM album）
-    total_result = await db.execute(select(Album))
+    # 4. 查询总数
+    total_result = await db.execute(query)
     total = len(total_result.scalars().all())
 
-    # 3. 查询当前页数据（SELECT * FROM album LIMIT page_size OFFSET offset）
+    # 5. 查询当前页数据
     result = await db.execute(
-        select(Album)
+        query
         .offset(offset)
         .limit(page_size)
     )
     items = result.scalars().all()
 
-    # 4. 返回分页结果
+    # 6. 返回分页结果
     return {
         "items": items,
         "total": total,

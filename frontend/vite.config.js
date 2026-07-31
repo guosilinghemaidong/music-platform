@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 const apiPrefixes = [
   '/user', '/music', '/singer', '/album', '/category',
   '/collection', '/like', '/follow', '/comment', '/post',
-  '/admin', '/upload', '/static', '/health', '/test-redis'
+  '/admin', '/upload', '/static', '/health', '/test-redis', '/search', '/playlist'
 ]
 
 // 自动生成 proxy 配置（不用手写 14 个重复的配置）

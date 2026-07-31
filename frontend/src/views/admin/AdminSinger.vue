@@ -2,7 +2,18 @@
   <div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px">
       <h2 style="margin: 0">歌手管理</h2>
-      <el-button type="primary" @click="openAddDialog">+ 新增歌手</el-button>
+      <div style="display: flex; gap: 10px">
+        <el-input
+          v-model="keyword"
+          placeholder="搜索歌手名"
+          clearable
+          style="width: 200px"
+          @keyup.enter="handleSearch"
+          @clear="handleSearch"
+        />
+        <el-button type="primary" @click="handleSearch">查询</el-button>
+        <el-button type="primary" @click="openAddDialog">+ 新增歌手</el-button>
+      </div>
     </div>
 
     <!-- 歌手列表 -->
@@ -106,18 +117,25 @@ const singerList = ref([])  // 歌手列表
 const page = ref(1)         // 当前页
 const pageSize = ref(10)    // 每页条数
 const total = ref(0)        // 总数
+const keyword = ref('')     // 搜索关键词
 
 // 获取歌手列表
 const fetchList = async () => {
   try {
     const res = await api.get('/singer/list', {
-      params: { page: page.value, page_size: pageSize.value }
+      params: { page: page.value, page_size: pageSize.value, keyword: keyword.value }
     })
     singerList.value = res.data.items
     total.value = res.data.total
   } catch (error) {
     ElMessage.error('获取歌手列表失败')
   }
+}
+
+// 点击查询按钮：重置到第一页再搜索
+const handleSearch = () => {
+  page.value = 1
+  fetchList()
 }
 
 // ========== 弹窗相关 ==========

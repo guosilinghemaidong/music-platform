@@ -5,7 +5,7 @@ from pydantic import BaseModel
 class UserRegister(BaseModel):
     username: str    # 用户名
     password: str    # 密码
-    nickname: str = None   # 昵称（可选）
+    nickname: str | None = None   # 昵称（可选）
 
 
 # 注册成功后返回给前端的数据
@@ -14,6 +14,7 @@ class UserResponse(BaseModel):
     username: str
     nickname: str | None = None    # 昵称（可能为空）
     avatar: str | None = None      # 头像路径（可能为空）
+    signature: str | None = None   # 个性签名（可能为空）
     role: str
 
     # 让 Pydantic 模型支持从 ORM 对象转换
@@ -34,8 +35,9 @@ class TokenResponse(BaseModel):
 
 # 修改个人信息时要传的参数（都是可选的）
 class UserUpdate(BaseModel):
-    nickname: str = None    # 昵称
-    avatar: str = None      # 头像
+    nickname: str | None = None    # 昵称
+    avatar: str | None = None      # 头像
+    signature: str | None = None   # 个性签名
 
 
 # 修改密码时前端需要传的参数

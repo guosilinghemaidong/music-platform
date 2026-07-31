@@ -2,9 +2,21 @@
   <div>
     <h2>用户管理</h2>
 
+    <!-- 搜索栏 -->
+    <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索用户名"
+        clearable
+        style="width: 220px"
+        @keyup.enter="handleSearch"
+        @clear="handleSearch"
+      />
+      <el-button type="primary" @click="handleSearch">查询</el-button>
+    </div>
+
     <!-- 用户表格 -->
     <el-table :data="userList" border style="width: 100%">
-      <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="username" label="用户名" width="120" />
       <el-table-column prop="nickname" label="昵称" width="120">
         <template #default="{ row }">
@@ -76,6 +88,7 @@ const userList = ref([])
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const keyword = ref('')  // 搜索关键词
 
 // 获取管理员请求头（所有管理员接口都需要带 Token）
 const getAuthHeaders = () => {
@@ -87,7 +100,7 @@ const getAuthHeaders = () => {
 const fetchUsers = async () => {
   try {
     const res = await api.get('/admin/users', {
-      params: { page: page.value, page_size: pageSize.value, role: 'user' },  // 只查普通用户
+      params: { page: page.value, page_size: pageSize.value, role: 'user', keyword: keyword.value },  // 带搜索关键词
       headers: getAuthHeaders()  // 带管理员 Token
     })
     // 给每行加一个 _editing 属性，控制编辑模式
@@ -96,6 +109,12 @@ const fetchUsers = async () => {
   } catch (error) {
     ElMessage.error('获取用户列表失败')
   }
+}
+
+// 点击查询按钮：重置到第一页再搜索
+const handleSearch = () => {
+  page.value = 1
+  fetchUsers()
 }
 
 // 点击编辑按钮

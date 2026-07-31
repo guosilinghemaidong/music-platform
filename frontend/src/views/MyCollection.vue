@@ -53,7 +53,7 @@
       <!-- 歌手 -->
       <el-table-column label="歌手" width="160">
         <template #default="scope">
-          {{ getSingerName(scope.row.singer_id) }}
+          <router-link :to="'/singer/' + scope.row.singer_id" class="singer-link">{{ getSingerName(scope.row.singer_id) }}</router-link>
         </template>
       </el-table-column>
 

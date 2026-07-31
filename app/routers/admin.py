@@ -27,6 +27,7 @@ async def get_user_list(
     page: int = 1,           # 页码，默认第 1 页
     page_size: int = 10,     # 每页数量，默认 10 条
     role: str = "user",      # 按角色筛选，默认只查普通用户（传 "all" 查全部）
+    keyword: str = "",       # 模糊搜索用户名关键词
     current_user: User = Depends(get_current_admin),  # 需要管理员权限
     db: AsyncSession = Depends(get_database)
 ):
@@ -36,11 +37,15 @@ async def get_user_list(
         # 默认只查普通用户（role="user"），不显示管理员
         query = query.where(User.role == role)
 
-    # 2. 查询符合条件的用户总数
+    # 2. 如果有搜索关键词，按用户名模糊匹配
+    if keyword:
+        query = query.where(User.username.like(f"%{keyword}%"))
+
+    # 3. 查询符合条件的用户总数
     total_result = await db.execute(query)
     total = len(total_result.scalars().all())
 
-    # 3. 分页查询当前页数据
+    # 4. 分页查询当前页数据
     offset = (page - 1) * page_size
     result = await db.execute(
         query
@@ -49,7 +54,7 @@ async def get_user_list(
     )
     items = result.scalars().all()
 
-    # 4. 返回分页结果
+    # 5. 返回分页结果
     return {
         "items": items,
         "total": total,
@@ -91,6 +96,8 @@ async def get_admin_music_list(
     page: int = 1,           # 页码，默认第 1 页
     page_size: int = 10,     # 每页数量，默认 10 条
     status: int = -1,        # 状态筛选：-1=全部，0=待审核/已下架，1=已上架
+    keyword: str = "",       # 模糊搜索歌曲名关键词
+    music_id: int = 0,       # 精确搜索歌曲ID（0 表示不筛选）
     current_user: User = Depends(get_current_admin),  # 需要管理员权限
     db: AsyncSession = Depends(get_database)
 ):
@@ -100,11 +107,19 @@ async def get_admin_music_list(
         # status >= 0 时按具体状态筛选，-1 表示不筛选（查全部）
         query = query.where(Music.status == status)
 
-    # 2. 查询符合条件的音乐总数
+    # 2. 如果有搜索关键词，按歌曲名模糊匹配
+    if keyword:
+        query = query.where(Music.title.like(f"%{keyword}%"))
+
+    # 3. 如果指定了 music_id，精确匹配
+    if music_id > 0:
+        query = query.where(Music.id == music_id)
+
+    # 4. 查询符合条件的音乐总数
     total_result = await db.execute(query)
     total = len(total_result.scalars().all())
 
-    # 3. 分页查询当前页数据
+    # 5. 分页查询当前页数据
     offset = (page - 1) * page_size
     result = await db.execute(
         query
@@ -113,7 +128,7 @@ async def get_admin_music_list(
     )
     items = result.scalars().all()
 
-    # 4. 返回分页结果
+    # 6. 返回分页结果
     return {
         "items": items,
         "total": total,

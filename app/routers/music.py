@@ -1,14 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
 from app.models.music import Music
+from app.models.play_history import PlayHistory
+from app.models.user import User
 from app.schemas.music import MusicResponse, MusicListResponse, MusicCreate, MusicUpdate
 
 
 import json
 from app.redis import redis_client
+
+# JWT 相关（用于可选的用户认证）
+from jose import jwt, JWTError
+from app.config import SECRET_KEY, ALGORITHM
+from app.routers.user import get_current_user
 
 router = APIRouter(prefix="/music", tags=["音乐"])
 
@@ -23,6 +30,25 @@ async def get_database():
             raise
         finally:
             await session.close()
+
+
+# 可选的用户认证：有 Token 就返回用户，没有就返回 None（不报错）
+async def get_optional_user(
+    authorization: str = Header(None),
+    db: AsyncSession = Depends(get_database)
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if not username:
+            return None
+        result = await db.execute(select(User).where(User.username == username))
+        return result.scalar_one_or_none()
+    except JWTError:
+        return None
 
 
 @router.get("/list", response_model=MusicListResponse)
@@ -231,13 +257,121 @@ async def get_hot_music(
     ]
 
 
+# ==================== 排行榜（热歌榜 + 新歌榜） ====================
+# GET /music/ranking
+# 返回两个榜单：热歌榜（按播放量排序，前50）和新歌榜（按上架时间排序，前20）
+@router.get("/ranking")
+async def get_ranking(
+    db: AsyncSession = Depends(get_database)
+):
+    # 1. 热歌榜：按播放次数倒序，取前 50
+    hot_result = await db.execute(
+        select(Music)
+        .where(Music.status == 1)
+        .order_by(Music.play_count.desc())
+        .limit(50)
+    )
+    hot_list = [
+        {
+            "id": m.id,
+            "title": m.title,
+            "singer_id": m.singer_id,
+            "cover": m.cover,
+            "file_url": m.file_url,
+            "play_count": m.play_count
+        }
+        for m in hot_result.scalars().all()
+    ]
+
+    # 2. 新歌榜：按创建时间倒序，取前 20
+    new_result = await db.execute(
+        select(Music)
+        .where(Music.status == 1)
+        .order_by(Music.create_time.desc())
+        .limit(20)
+    )
+    new_list = [
+        {
+            "id": m.id,
+            "title": m.title,
+            "singer_id": m.singer_id,
+            "cover": m.cover,
+            "file_url": m.file_url,
+            "play_count": m.play_count,
+            "create_time": str(m.create_time)
+        }
+        for m in new_result.scalars().all()
+    ]
+
+    return {"hot_list": hot_list, "new_list": new_list}
+
+
+# ==================== 最近播放（当前用户的播放记录） ====================
+# GET /music/recent
+# 返回当前登录用户最近听过的 50 首歌（去重，同一首歌只保留最近一次）
+@router.get("/recent")
+async def get_recent_plays(
+    limit: int = 50,
+    db: AsyncSession = Depends(get_database),
+    current_user: User = Depends(get_current_user)
+):
+    # 查询当前用户的播放记录，按时间倒序
+    result = await db.execute(
+        select(PlayHistory)
+        .where(PlayHistory.user_id == current_user.id)
+        .order_by(PlayHistory.played_at.desc())
+        .limit(limit * 2)  # 多取一些，后面去重用
+    )
+    records = result.scalars().all()
+
+    # 去重：同一首歌只保留最近一次出现
+    seen_ids = set()
+    unique_records = []
+    for r in records:
+        if r.music_id not in seen_ids:
+            seen_ids.add(r.music_id)
+            unique_records.append(r)
+            if len(unique_records) >= limit:
+                break
+
+    # 批量查询歌曲详情
+    music_ids = [r.music_id for r in unique_records]
+    if not music_ids:
+        return []
+
+    music_result = await db.execute(
+        select(Music).where(Music.id.in_(music_ids))
+    )
+    music_map = {m.id: m for m in music_result.scalars().all()}
+
+    # 按播放记录的顺序返回（保持时间倒序）
+    items = []
+    for r in unique_records:
+        m = music_map.get(r.music_id)
+        if m and m.status == 1:  # 只返回已上架的歌曲
+            items.append({
+                "id": m.id,
+                "title": m.title,
+                "singer_id": m.singer_id,
+                "album_id": m.album_id,
+                "cover": m.cover,
+                "file_url": m.file_url,
+                "play_count": m.play_count,
+                "played_at": str(r.played_at),
+            })
+
+    return items
+
+
 # ==================== 播放次数 +1 ====================
 # POST /music/{music_id}/play
 # 每次播放一首歌时调用，play_count 自动加 1
+# 如果用户已登录，同时记录播放历史
 @router.post("/{music_id}/play")
 async def increment_play_count(
     music_id: int,
-    db: AsyncSession = Depends(get_database)
+    db: AsyncSession = Depends(get_database),
+    current_user = Depends(get_optional_user)
 ):
     # 1. 查询音乐
     result = await db.execute(select(Music).where(Music.id == music_id))
@@ -247,9 +381,15 @@ async def increment_play_count(
 
     # 2. 播放次数 +1
     music.play_count += 1
+
+    # 3. 如果用户已登录，记录播放历史
+    if current_user:
+        play_record = PlayHistory(user_id=current_user.id, music_id=music_id)
+        db.add(play_record)
+
     await db.flush()
 
-    # 3. 清除音乐列表的 Redis 缓存（因为 play_count 变了，旧缓存数据不准确）
+    # 4. 清除音乐列表的 Redis 缓存（因为 play_count 变了，旧缓存数据不准确）
     #    用 keys 匹配所有 music:list: 开头的缓存 key，批量删除
     cache_keys = redis_client.keys("music:list:*")
     if cache_keys:

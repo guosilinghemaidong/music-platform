@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, DateTime, func
+from sqlalchemy import String, DateTime, func, Text
 import datetime
 from app.models.base import Base
 
@@ -14,6 +14,7 @@ class User(Base):
     password: Mapped[str] = mapped_column(String(100), nullable=False, comment="密码")
     nickname: Mapped[str] = mapped_column(String(50), nullable=True, comment="昵称")
     avatar: Mapped[str] = mapped_column(String(255), nullable=True, comment="头像路径")
+    signature: Mapped[str] = mapped_column(Text, nullable=True, comment="个性签名")
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="user", comment="角色")
     status: Mapped[int] = mapped_column(nullable=False, default=1, comment="状态")
     create_time: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), comment="创建时间")

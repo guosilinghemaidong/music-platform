@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import './global.css'   // 全局自定义样式（歌手链接等）
 import { createPinia } from 'pinia'   // 导入 Pinia（全局状态管理）
 import App from './App.vue'
 import router from './router'  // 导入路由（下一步创建）

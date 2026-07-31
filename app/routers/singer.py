@@ -4,6 +4,8 @@ from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
 from app.models.singer import Singer
+from app.models.music import Music
+from app.models.album import Album
 from app.schemas.singer import SingerResponse, SingerListResponse, SingerCreate, SingerUpdate
 
 
@@ -26,24 +28,32 @@ async def get_database():
 async def get_singer_list(
     page: int = 1,           # 页码，默认第 1 页
     page_size: int = 10,     # 每页数量，默认 10 条
+    keyword: str = "",       # 模糊搜索歌手名关键词
     db: AsyncSession = Depends(get_database)
 ):
-    # 1. 计算跳过多少条
+    # 1. 构造基础查询
+    query = select(Singer)
+
+    # 2. 如果有搜索关键词，按歌手名模糊匹配
+    if keyword:
+        query = query.where(Singer.name.like(f"%{keyword}%"))
+
+    # 3. 计算跳过多少条
     offset = (page - 1) * page_size
 
-    # 2. 查询总数（SELECT COUNT(*) FROM singer）
-    total_result = await db.execute(select(Singer))
+    # 4. 查询总数
+    total_result = await db.execute(query)
     total = len(total_result.scalars().all())
 
-    # 3. 查询当前页数据（SELECT * FROM signer LIMIT page_size OFFSET offset）
+    # 5. 查询当前页数据
     result = await db.execute(
-        select(Singer)
+        query
         .offset(offset)
         .limit(page_size)
     )
     items = result.scalars().all()
 
-    # 4. 返回分页结果
+    # 6. 返回分页结果
     return {
         "items": items,
         "total": total,
@@ -59,6 +69,40 @@ async def get_singer_detail(singer_id: int, db: AsyncSession = Depends(get_datab
     if singer is None:
         raise HTTPException(status_code=404, detail="歌手未找到")
     return singer
+
+
+# 歌手完整详情（歌手信息 + 歌曲列表 + 专辑列表）
+# 用于前端歌手详情页展示
+@router.get("/full/{singer_id}")
+async def get_singer_full_detail(singer_id: int, db: AsyncSession = Depends(get_database)):
+    # 1. 查询歌手基本信息
+    result = await db.execute(select(Singer).where(Singer.id == singer_id))
+    singer = result.scalar_one_or_none()
+    if singer is None:
+        raise HTTPException(status_code=404, detail="歌手未找到")
+
+    # 2. 查询该歌手的歌曲列表（只查已上架的，status=1）
+    music_result = await db.execute(
+        select(Music).where(Music.singer_id == singer_id, Music.status == 1)
+    )
+    songs = music_result.scalars().all()
+
+    # 3. 查询该歌手的专辑列表
+    album_result = await db.execute(
+        select(Album).where(Album.singer_id == singer_id)
+    )
+    albums = album_result.scalars().all()
+
+    # 4. 把 ORM 对象转成普通字典（避免 session 关闭后序列化触发懒加载报错）
+    singer_dict = {c.name: getattr(singer, c.name) for c in Singer.__table__.columns}
+    songs_list = [{c.name: getattr(s, c.name) for c in Music.__table__.columns} for s in songs]
+    albums_list = [{c.name: getattr(a, c.name) for c in Album.__table__.columns} for a in albums]
+
+    return {
+        "singer": singer_dict,
+        "songs": songs_list,
+        "albums": albums_list
+    }
 
 
 @router.post("/create", response_model=SingerResponse)

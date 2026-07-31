@@ -18,13 +18,16 @@
       <el-table-column prop="content" label="内容" show-overflow-tooltip min-width="200" />
       <!-- 发布者 -->
       <el-table-column prop="username" label="发布者" width="100" />
-      <!-- 图片预览 -->
-      <el-table-column label="图片" width="100">
+      <!-- 图片预览（点击可放大查看） -->
+      <el-table-column label="图片" width="120">
         <template #default="{ row }">
           <template v-if="parseImages(row.images).length > 0">
-            <img
-              :src="'' + parseImages(row.images)[0]"
-              style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px"
+            <el-image
+              :src="parseImages(row.images)[0]"
+              :preview-src-list="parseImages(row.images)"
+              fit="cover"
+              style="width: 40px; height: 40px; border-radius: 4px; cursor: pointer"
+              preview-teleported
             />
             <span v-if="parseImages(row.images).length > 1" style="margin-left: 4px; color: #999; font-size: 12px">
               +{{ parseImages(row.images).length - 1 }}

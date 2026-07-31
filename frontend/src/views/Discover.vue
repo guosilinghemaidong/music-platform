@@ -71,7 +71,7 @@
             <div style="padding: 12px">
               <div class="music-title">{{ music.title }}</div>
               <div class="music-info">
-                <span>{{ getSingerName(music.singer_id) }}</span>
+                <router-link :to="'/singer/' + music.singer_id" class="singer-link">{{ getSingerName(music.singer_id) }}</router-link>
                 <span class="play-count">
                   <el-icon><Headset /></el-icon>
                   {{ music.play_count }}

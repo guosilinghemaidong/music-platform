@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from app.routers import upload
 from app.routers import post
 from app.routers import admin
+from app.routers import search
 from app.redis import redis_client
 from contextlib import asynccontextmanager
 from app.models.base import Base
@@ -25,6 +26,9 @@ from app.models import collection as collection_models, music_like as music_like
 from app.models import follow as follow_models, comment as comment_models
 from app.models import post as post_models, post_like as post_like_models
 from app.models import post_comment as post_comment_models
+from app.models import play_history as play_history_models
+from app.models import playlist as playlist_models, playlist_music as playlist_music_models
+from app.routers import playlist
 
 @asynccontextmanager
 async def lifespan(app):
@@ -59,6 +63,8 @@ app.include_router(follow.router)
 app.include_router(comment.router)
 app.include_router(post.router)
 app.include_router(admin.router)
+app.include_router(search.router)
+app.include_router(playlist.router)
 
 
 

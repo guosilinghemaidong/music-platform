@@ -3,12 +3,29 @@
     <h2>音乐审核</h2>
 
     <!-- 筛选栏 -->
-    <div style="margin-bottom: 20px; display: flex; gap: 10px">
-      <el-radio-group v-model="statusFilter" @change="fetchMusicList">
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+      <el-radio-group v-model="statusFilter" @change="handleSearch">
         <el-radio-button :value="-1">全部</el-radio-button>
         <el-radio-button :value="0">待审核</el-radio-button>
         <el-radio-button :value="1">已上架</el-radio-button>
       </el-radio-group>
+      <el-input
+        v-model="keyword"
+        placeholder="搜索歌曲名"
+        clearable
+        style="width: 180px"
+        @keyup.enter="handleSearch"
+        @clear="handleSearch"
+      />
+      <el-input
+        v-model="musicIdSearch"
+        placeholder="精确搜索歌曲ID"
+        clearable
+        style="width: 150px"
+        @keyup.enter="handleSearch"
+        @clear="handleSearch"
+      />
+      <el-button type="primary" @click="handleSearch">查询</el-button>
     </div>
 
     <!-- 音乐表格 -->
@@ -27,7 +44,7 @@
           {{ getAlbumName(row.album_id) }}
         </template>
       </el-table-column>
-      <el-table-column prop="file_url" label="文件路径" width="200" />
+      <el-table-column prop="file_url" label="文件路径" min-width="350" show-overflow-tooltip />
       <el-table-column prop="duration" label="时长(秒)" width="100" />
       <el-table-column prop="play_count" label="播放次数" width="100" />
       <el-table-column prop="status" label="状态" width="100">
@@ -82,6 +99,8 @@ const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const statusFilter = ref(-1)  // -1 表示全部，0 表示待审核，1 表示已上架
+const keyword = ref('')        // 模糊搜索歌曲名
+const musicIdSearch = ref('')  // 精确搜索歌曲ID
 const singerMap = ref({})      // 歌手 ID → 歌手名 的映射表
 const albumMap = ref({})       // 专辑 ID → 专辑名 的映射表
 
@@ -94,11 +113,15 @@ const getAuthHeaders = () => {
 // 获取音乐列表（统一使用管理员接口，通过 status 参数筛选）
 const fetchMusicList = async () => {
   try {
+    // 把 musicIdSearch 转成数字，空字符串传 0（表示不筛选）
+    const musicIdNum = musicIdSearch.value ? parseInt(musicIdSearch.value) || 0 : 0
     const res = await api.get('/admin/music/list', {
       params: {
         page: page.value,
         page_size: pageSize.value,
-        status: statusFilter.value  // -1=全部，0=待审核，1=已上架
+        status: statusFilter.value,  // -1=全部，0=待审核，1=已上架
+        keyword: keyword.value,      // 模糊搜索歌曲名
+        music_id: musicIdNum         // 精确搜索歌曲ID
       },
       headers: getAuthHeaders()  // 带管理员 Token
     })
@@ -107,6 +130,12 @@ const fetchMusicList = async () => {
   } catch (error) {
     ElMessage.error('获取音乐列表失败')
   }
+}
+
+// 点击查询按钮：重置到第一页再搜索
+const handleSearch = () => {
+  page.value = 1
+  fetchMusicList()
 }
 
 // 审核音乐（上架/下架）
